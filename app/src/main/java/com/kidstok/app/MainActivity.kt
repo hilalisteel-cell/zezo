@@ -3,6 +3,7 @@ package com.kidstok.app
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -14,12 +15,15 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
     private lateinit var web: WebView
-    private lateinit var splash: ImageView
+    private lateinit var splashContainer: LinearLayout
     private var firstPageRevealed = false
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -63,18 +67,66 @@ class MainActivity : AppCompatActivity() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
                     if (!firstPageRevealed) {
-                        view?.postDelayed({ revealWebsite() }, 180)
+                        view?.postDelayed({ revealWebsite() }, 220)
                     }
                 }
             }
         }
 
-        splash = ImageView(this).apply {
+        val logo = ImageView(this).apply {
             setImageResource(R.drawable.kidstok_logo)
+            adjustViewBounds = true
+            layoutParams = LinearLayout.LayoutParams(dp(240), ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+
+        val progress = ProgressBar(this).apply {
+            isIndeterminate = true
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).also { lp ->
+                lp.topMargin = dp(24)
+                lp.gravity = Gravity.CENTER_HORIZONTAL
+            }
+        }
+
+        val title = TextView(this).apply {
+            text = "برجاء الانتظار"
+            setTextColor(Color.parseColor("#333333"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).also { lp ->
+                lp.topMargin = dp(16)
+                lp.gravity = Gravity.CENTER_HORIZONTAL
+            }
+        }
+
+        val subtitle = TextView(this).apply {
+            text = "جاري تحميل التطبيق..."
+            setTextColor(Color.parseColor("#777777"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).also { lp ->
+                lp.topMargin = dp(8)
+                lp.gravity = Gravity.CENTER_HORIZONTAL
+            }
+        }
+
+        splashContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
             setBackgroundColor(Color.WHITE)
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            contentDescription = "Kids-tok"
-            setPadding(dp(34), dp(34), dp(34), dp(34))
+            alpha = 1f
+            addView(logo)
+            addView(progress)
+            addView(title)
+            addView(subtitle)
         }
 
         val root = FrameLayout(this).apply {
@@ -87,11 +139,10 @@ class MainActivity : AppCompatActivity() {
                 )
             )
             addView(
-                splash,
+                splashContainer,
                 FrameLayout.LayoutParams(
-                    dp(300),
-                    dp(220),
-                    Gravity.CENTER
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
                 )
             )
         }
@@ -106,7 +157,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        // Safety fallback: never leave the user stuck on the splash screen.
         web.postDelayed({
             if (!firstPageRevealed) revealWebsite()
         }, 8000)
@@ -124,11 +174,11 @@ class MainActivity : AppCompatActivity() {
             .setDuration(180)
             .start()
 
-        splash.animate()
+        splashContainer.animate()
             .alpha(0f)
-            .setDuration(160)
+            .setDuration(180)
             .withEndAction {
-                splash.visibility = View.GONE
+                splashContainer.visibility = View.GONE
             }
             .start()
     }
