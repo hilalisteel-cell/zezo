@@ -46,7 +46,7 @@ object OfflinePage {
 
     private fun esc(s: String): String = s
         .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        .replace(""", "&quot;").replace("'", "&#39;")
+        .replace("\"", "&quot;").replace("'", "&#39;")
 
     private fun template(cards: String) = """
       <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
