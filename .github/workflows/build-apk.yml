@@ -26,7 +26,9 @@ jobs:
       - name: Add KidsTok logo
         run: |
           mkdir -p app/src/main/res/drawable
-          curl --fail --location --retry 3 "https://kids-tok.com/kids_tok_logo.jpg" -o app/src/main/res/drawable/kidstok_logo.jpg
+          if ! curl --fail --location --retry 3 "https://kids-tok.com/kids_tok_logo.jpg" -o app/src/main/res/drawable/kidstok_logo.jpg; then
+            cp app/src/main/res/drawable/app_icon.xml app/src/main/res/drawable/kidstok_logo.xml
+          fi
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace
