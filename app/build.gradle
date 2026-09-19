@@ -11,8 +11,8 @@ android {
         applicationId 'com.kidstok.app'
         minSdk 24
         targetSdk 35
-        versionCode 4
-        versionName '2.2.0-loading'
+        versionCode 5
+        versionName '2.3.0-offline-fix'
     }
 
     buildTypes {
