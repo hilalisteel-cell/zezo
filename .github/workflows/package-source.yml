@@ -1,0 +1,26 @@
+name: Package KidsTok Android Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/package-source.yml'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create source ZIP
+        run: |
+          zip -r KidsTok-Android-Source.zip .             -x ".git/*"                "app/build/*"                ".gradle/*"                "build/*"
+
+      - name: Upload source ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: KidsTok-Android-Source
+          path: KidsTok-Android-Source.zip
+          if-no-files-found: error
