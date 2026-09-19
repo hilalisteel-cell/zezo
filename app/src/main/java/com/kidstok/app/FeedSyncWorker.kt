@@ -27,18 +27,30 @@ class FeedSyncWorker(appContext: Context, params: WorkerParameters) : CoroutineW
                 if (isStopped) break
                 val item = videos.optJSONObject(i) ?: continue
                 val id = item.optLong("id")
+                val creatorId = item.optLong("creator_id")
                 val videoUrl = item.optString("video_url")
                 val thumbUrl = item.optString("thumbnail_url")
-                val videoExt = extensionFromUrl(videoUrl, "mp4")
-                val videoFile = File(mediaDir, "video_${id}.${videoExt}")
-                if (videoUrl.startsWith("https://") && !videoFile.exists()) {
-                    if (applicationContext.filesDir.usableSpace < AppConfig.MIN_FREE_BYTES) break
-                    download(videoUrl, videoFile)
+                val avatarUrl = item.optString("creator_image_url")
+
+                if (videoUrl.startsWith("https://")) {
+                    val videoExt = extensionFromUrl(videoUrl, "mp4")
+                    val videoFile = File(mediaDir, "video_" + id + "." + videoExt)
+                    if (!videoFile.exists()) {
+                        if (applicationContext.filesDir.usableSpace < AppConfig.MIN_FREE_BYTES) break
+                        runCatching { download(videoUrl, videoFile) }
+                    }
                 }
+
                 if (thumbUrl.startsWith("https://")) {
                     val thumbExt = extensionFromUrl(thumbUrl, "jpg")
-                    val thumbFile = File(mediaDir, "thumb_${id}.${thumbExt}")
+                    val thumbFile = File(mediaDir, "thumb_" + id + "." + thumbExt)
                     if (!thumbFile.exists()) runCatching { download(thumbUrl, thumbFile) }
+                }
+
+                if (creatorId > 0 && avatarUrl.startsWith("https://")) {
+                    val avatarExt = extensionFromUrl(avatarUrl, "jpg")
+                    val avatarFile = File(mediaDir, "avatar_" + creatorId + "." + avatarExt)
+                    if (!avatarFile.exists()) runCatching { download(avatarUrl, avatarFile) }
                 }
             }
             Result.success()
@@ -51,9 +63,9 @@ class FeedSyncWorker(appContext: Context, params: WorkerParameters) : CoroutineW
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 15000
         c.readTimeout = 30000
-        c.setRequestProperty("User-Agent", "KidsTok-Android/1.0")
+        c.setRequestProperty("User-Agent", "KidsTok-Android/2.3")
         c.connect()
-        if (c.responseCode !in 200..299) throw IllegalStateException("HTTP ${c.responseCode}")
+        if (c.responseCode !in 200..299) throw IllegalStateException("HTTP " + c.responseCode)
         return c.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
     }
 
@@ -63,9 +75,9 @@ class FeedSyncWorker(appContext: Context, params: WorkerParameters) : CoroutineW
         c.connectTimeout = 15000
         c.readTimeout = 120000
         c.instanceFollowRedirects = true
-        c.setRequestProperty("User-Agent", "KidsTok-Android/1.0")
+        c.setRequestProperty("User-Agent", "KidsTok-Android/2.3")
         c.connect()
-        if (c.responseCode !in 200..299) throw IllegalStateException("HTTP ${c.responseCode}")
+        if (c.responseCode !in 200..299) throw IllegalStateException("HTTP " + c.responseCode)
         c.inputStream.use { input ->
             FileOutputStream(part).use { output -> input.copyTo(output, 1024 * 128) }
         }
