@@ -76,9 +76,25 @@ class MainActivity : AppCompatActivity() {
             settings.builtInZoomControls = false
             settings.displayZoomControls = false
 
-            webChromeClient = WebChromeClient()
+            settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+            settings.loadsImagesAutomatically = true
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+
+            webChromeClient = object : WebChromeClient() {
+                override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                    super.onProgressChanged(view, newProgress)
+                    if (!firstPageRevealed && newProgress >= 72) {
+                        view?.postDelayed({ revealWebsite() }, 40)
+                    }
+                }
+            }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = false
+
+                override fun onPageCommitVisible(view: WebView?, url: String?) {
+                    super.onPageCommitVisible(view, url)
+                    if (!firstPageRevealed) view?.postDelayed({ revealWebsite() }, 25)
+                }
 
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
@@ -87,7 +103,6 @@ class MainActivity : AppCompatActivity() {
                             prefs.edit().putString("last_url", url).apply()
                         }
                     }
-                    if (!firstPageRevealed) view?.postDelayed({ revealWebsite() }, 180)
                 }
 
                 override fun onReceivedError(
@@ -189,11 +204,13 @@ class MainActivity : AppCompatActivity() {
             if (!firstPageRevealed) {
                 if (!Network.isOnline(this)) showOffline() else revealWebsite()
             }
-        }, 8000)
+        }, 2500)
 
         if (lastOnline) {
-            enqueueSync()
             loadPreferredOnlineUrl()
+            web.postDelayed({
+                if (Network.isOnline(this@MainActivity)) enqueueSync()
+            }, 15000)
         } else {
             showOffline()
         }
@@ -250,8 +267,10 @@ class MainActivity : AppCompatActivity() {
             lastOnline = online
 
             if (online) {
-                enqueueSync()
                 if (showingOffline) loadPreferredOnlineUrl()
+                web.postDelayed({
+                    if (Network.isOnline(this@MainActivity)) enqueueSync()
+                }, 10000)
             } else {
                 showOffline()
             }
@@ -306,10 +325,10 @@ class MainActivity : AppCompatActivity() {
         if (firstPageRevealed || isFinishing || isDestroyed) return
         firstPageRevealed = true
         web.visibility = View.VISIBLE
-        web.animate().alpha(1f).setDuration(160).start()
+        web.animate().alpha(1f).setDuration(70).start()
         splashContainer.animate()
             .alpha(0f)
-            .setDuration(160)
+            .setDuration(70)
             .withEndAction { splashContainer.visibility = View.GONE }
             .start()
     }
