@@ -42,7 +42,7 @@ object OfflinePage {
                     cards.append(
                         """
                         <section class="reel" data-video-id="$id">
-                          <video class="reel-video" src="$videoUri" preload="auto" playsinline loop></video>
+                          <video class="reel-video" src="$videoUri" preload="auto" autoplay muted playsinline loop></video>
                           <div class="video-start-cover" aria-hidden="true"></div>
                           <div class="reel-gradient"></div>
                           <div class="reel-info">
@@ -145,18 +145,65 @@ function activate(){
   if(!best||bestRatio<0.60){stopOthers(null);return;}
   var v=best.querySelector('.reel-video'); if(!v)return;
   stopOthers(v);
-  if(v.paused)v.play().catch(function(){});
+  if(v.paused){
+    v.muted=true;
+    v.dataset.autoMuted='1';
+    var attempt=v.play();
+    if(attempt&&typeof attempt.catch==='function'){
+      attempt.catch(function(){
+        setTimeout(function(){
+          v.muted=true;
+          v.dataset.autoMuted='1';
+          v.play().catch(function(){});
+        },120);
+      });
+    }
+  }
 }
 const observer=new IntersectionObserver(function(entries){
   entries.forEach(function(e){ratios.set(e.target,e.isIntersecting?e.intersectionRatio:0);});
   requestAnimationFrame(activate);
 },{threshold:[0,.25,.5,.6,.75,.9,1]});
 reels.forEach(function(r){observer.observe(r);});
+setTimeout(function(){
+  if(reels[0]){
+    ratios.set(reels[0],1);
+    activate();
+  }
+},80);
 videos.forEach(function(v){
   var cover=v.parentElement.querySelector('.video-start-cover');
-  v.addEventListener('playing',function(){if(cover)cover.classList.add('hidden');});
+  function onPlaying(){
+    if(cover)cover.classList.add('hidden');
+    if(v.dataset.autoMuted==='1'){
+      setTimeout(function(){
+        if(!v.paused){
+          v.muted=false;
+          v.dataset.autoMuted='0';
+          var icon=v.closest('.reel')?.querySelector('.mute-btn .action-icon');
+          if(icon)icon.textContent='🔊';
+        }
+      },180);
+    }
+  }
+  v.addEventListener('playing',onPlaying);
+  v.addEventListener('canplay',function(){
+    var reel=v.closest('.reel');
+    var ratio=reel?(ratios.get(reel)||0):0;
+    if(ratio>=0.60&&v.paused){
+      v.muted=true;
+      v.dataset.autoMuted='1';
+      v.play().catch(function(){});
+    }
+  });
   v.addEventListener('play',function(){stopOthers(v);});
-  v.addEventListener('click',function(){if(v.paused)v.play().catch(function(){});});
+  v.addEventListener('click',function(){
+    if(v.paused){
+      v.muted=true;
+      v.dataset.autoMuted='1';
+      v.play().catch(function(){});
+    }
+  });
 });
 document.addEventListener('click',function(e){
   var reaction=e.target.closest('.reaction-btn');
