@@ -2,6 +2,8 @@ package com.kidstok.app
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
@@ -161,7 +163,28 @@ class MainActivity : AppCompatActivity() {
             if (!firstPageRevealed) revealWebsite()
         }, 8000)
 
-        web.loadUrl(AppConfig.SITE_URL)
+        val startUrl = intent?.data?.toString()?.takeIf { isKidsTokVideoLink(it) } ?: AppConfig.SITE_URL
+        web.loadUrl(startUrl)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val url = intent.data?.toString()
+        if (url != null && isKidsTokVideoLink(url)) {
+            web.loadUrl(url)
+        }
+    }
+
+    private fun isKidsTokVideoLink(url: String): Boolean {
+        return try {
+            val uri = Uri.parse(url)
+            uri.scheme.equals("https", true) &&
+                uri.host.equals("kids-tok.com", true) &&
+                (uri.path ?: "").startsWith("/child_feed.php")
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     private fun revealWebsite() {
