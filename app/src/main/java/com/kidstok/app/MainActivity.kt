@@ -1,6 +1,7 @@
 package com.kidstok.app
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -75,7 +76,6 @@ class MainActivity : AppCompatActivity() {
             settings.setSupportZoom(false)
             settings.builtInZoomControls = false
             settings.displayZoomControls = false
-
             settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
             settings.loadsImagesAutomatically = true
             setLayerType(View.LAYER_TYPE_HARDWARE, null)
@@ -88,8 +88,15 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+
             webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = false
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest?
+                ): Boolean {
+                    val url = request?.url?.toString() ?: return false
+                    return openWhatsAppExternally(url)
+                }
 
                 override fun onPageCommitVisible(view: WebView?, url: String?) {
                     super.onPageCommitVisible(view, url)
@@ -175,14 +182,20 @@ class MainActivity : AppCompatActivity() {
 
         val root = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
-            addView(web, FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            ))
-            addView(splashContainer, FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            ))
+            addView(
+                web,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
+            addView(
+                splashContainer,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
         }
 
         CookieManager.getInstance().setAcceptCookie(true)
@@ -213,6 +226,51 @@ class MainActivity : AppCompatActivity() {
             }, 15000)
         } else {
             showOffline()
+        }
+    }
+
+    private fun openWhatsAppExternally(url: String): Boolean {
+        val uri = try {
+            Uri.parse(url)
+        } catch (_: Throwable) {
+            return false
+        }
+
+        val scheme = uri.scheme?.lowercase().orEmpty()
+        val host = uri.host?.lowercase().orEmpty()
+        val isWhatsApp = scheme == "whatsapp" ||
+            host == "wa.me" ||
+            host == "api.whatsapp.com" ||
+            host == "whatsapp.com" ||
+            host == "www.whatsapp.com"
+
+        if (!isWhatsApp) return false
+
+        val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
+        for (packageName in packages) {
+            try {
+                startActivity(
+                    Intent(Intent.ACTION_VIEW, uri).apply {
+                        setPackage(packageName)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                )
+                return true
+            } catch (_: ActivityNotFoundException) {
+                // جرّب نسخة واتساب الأخرى.
+            } catch (_: Throwable) {
+            }
+        }
+
+        return try {
+            startActivity(
+                Intent(Intent.ACTION_VIEW, uri).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+            true
+        } catch (_: Throwable) {
+            false
         }
     }
 
