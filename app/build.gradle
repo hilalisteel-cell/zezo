@@ -11,8 +11,8 @@ android {
         applicationId 'com.kidstok.app'
         minSdk 24
         targetSdk 35
-        versionCode 7
-        versionName '2.5.0-fast-start'
+        versionCode 8
+        versionName '2.6.0-whatsapp-external'
     }
 
     buildTypes {
